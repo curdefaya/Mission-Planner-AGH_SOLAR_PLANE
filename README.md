@@ -1,13 +1,13 @@
 # Autonomous Mission - Search & Precision Drop
 **AGH Solar Plane 2026 – Zadanie rekrutacyjne**
 
-Cześć! Opracowałem skrypt w Pythonie sterujący autonomiczną misją drona w symulacji SITL (Mission Planner). Ze względu na ograniczony czas, jaki mogłem poświęcić na zadanie, przygotowałem prosty i konkretny prototyp (Proof of Concept). Kod realizuje podstawowy przebieg misji zrzutu ładunku, choć posiada pewne uproszczenia, o których szczerze piszę poniżej.
+Cześć! Opracowałem skrypt w Pythonie sterujący autonomiczną misją drona w symulacji SITL (Mission Planner). Ze względu na ograniczony czas, jaki mogłem poświęcić na zadanie, przygotowałem prosty i konkretny prototyp (Proof of Concept). Kod realizuje podstawowy przebieg misji zrzutu ładunku, choć posiada pewne uproszczenia, o których piszę poniżej.
 
 ---
 
 ## 1. Koncepcja i przebieg misji
 
-Wybrałem scenariusz **Search & Precision Drop** (poszukiwanie i zrzut ładunku):
+Wybrałem scenariusz **Search & Precision Drop** :
 
 1. **Start:** Dron przełącza się w tryb `GUIDED`, uzbraja silniki (`ARM`) i wznosi się na wysokość 15 m (`TAKEOFF`).
 2. **Przelot:** Pętla nawigacyjna wysyła ramki `set_position_target_global_int_send`, kierując drona do punktu docelowego (~100 m na północ od miejsca startu).
@@ -45,7 +45,7 @@ Wybrałem scenariusz **Search & Precision Drop** (poszukiwanie i zrzut ładunku)
 
 ---
 
-## 4. Stan projektu, ograniczenia i wyzwania (Szczerze o projekcie)
+## 4. Stan projektu, ograniczenia i wyzwania
 
 Ze względu na brak czasu nie zdążyłem rozbudować projektu do pełnej wersji:
 
