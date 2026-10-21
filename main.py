@@ -1,5 +1,6 @@
 import math
 import time
+import asyncio
 from pymavlink import mavutil
 
 # SITL po TCP z MP
@@ -7,6 +8,7 @@ CONNECTION_STRING = "tcp:127.0.0.1:5762"
 
 
 def get_distance_meters(lat1, lon1, lat2, lon2):
+    ''' nagge '''
     R = 6371000.0
     dlat = math.radians(lat2 - lat1)
     dlon = math.radians(lon2 - lon1)
@@ -25,6 +27,14 @@ def main():
     master = mavutil.mavlink_connection(CONNECTION_STRING)
     master.wait_heartbeat()
     print("Dziala")
+
+    master.mav.request_data_stream_send(
+        master.target_system,
+        master.target_component,
+        mavutil.mavlink.MAV_DATA_STREAM_POSITION,
+        10,  # Częstotliwość w Hz
+        1,   # Włączenie strumienia (1 = ON, 0 = OFF)
+    )
 
     # GUIDED
     mode_id = master.mode_mapping().get("GUIDED")
@@ -75,8 +85,13 @@ def main():
 
     # Czekamy az sie wzniesie (albo strzeli timeout)
     while True:
+
+        if time.time() - start_time > 15.0:
+            print("Timeout startu")
+            break
+        
         msg = master.recv_match(
-            type="GLOBAL_POSITION_INT", blocking=True, timeout=0.5
+            type="GLOBAL_POSITION_INT", blocking=True, timeout=0.5 
         )
         if msg:
             cur_alt = msg.relative_alt / 1000.0
@@ -88,14 +103,37 @@ def main():
 
             print(f"Alt: {cur_alt:.1f}m / {target_alt}m")
 
-            # Zapobiega zwieszeniu jak wskazuje 14.8m zamiast równo 15m (nie działa btw)
-            if cur_alt >= 12.0 or (time.time() - start_time > 10.0):
+            # Zapobiega zwieszeniu jak wskazuje 14.8m zamiast równo 15m (już działa btw)
+            if cur_alt >= (target_alt * 0.95):
                 print("Wysokosc zaliczona, leci w trasie")
                 break
+    if home_lat is None:
+        print("Blad: nie odebrano wspolrzednych home_lat")
+        return
 
     # Cel ~100m na polnoc od startu
     target_lat = home_lat + 0.0009
     target_lon = home_lon
+
+    '''
+    type_mask = (
+             mavutil.mavlink.POSITION_TARGET_TYPEMASK_X_IGNORE |
+             mavutil.mavlink.POSITION_TARGET_TYPEMASK_Y_IGNORE |
+             mavutil.mavlink.POSITION_TARGET_TYPEMASK_Z_IGNORE |
+             mavutil.mavlink.POSITION_TARGET_TYPEMASK_VX_IGNORE |  # Set to IGNORE to control, clear to ignore? 
+             # Correction: In MAVLink, 1=Ignore, 0=Control. 
+             # So to control VX, we do NOT set the IGNORE bit.
+             # To ignore VX, we DO set the IGNORE bit.
+             
+             # Example: Control VX, VY, VZ. Ignore everything else.
+             mavutil.mavlink.POSITION_TARGET_TYPEMASK_AX_IGNORE |
+             mavutil.mavlink.POSITION_TARGET_TYPEMASK_AY_IGNORE |
+             mavutil.mavlink.POSITION_TARGET_TYPEMASK_AZ_IGNORE |
+             mavutil.mavlink.POSITION_TARGET_TYPEMASK_YAW_IGNORE |
+             mavutil.mavlink.POSITION_TARGET_TYPEMASK_YAW_RATE_IGNORE)
+    '''
+
+    type_mask = 0b0000110111111000
 
     # set_position w petli, bo inaczej ArduPilot staje w miejscu
     while True:
@@ -104,7 +142,7 @@ def main():
             master.target_system,
             master.target_component,
             mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT_INT,
-            0b0000111111111000,
+            type_mask,
             int(target_lat * 1e7),
             int(target_lon * 1e7),
             float(target_alt),
