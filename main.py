@@ -1,14 +1,13 @@
 import math
 import time
-import asyncio
 from pymavlink import mavutil
+from test_data.scenariusze_proste import SCENARIOS, get_sample
 
 # SITL po TCP z MP
 CONNECTION_STRING = "tcp:127.0.0.1:5762"
 
 
 def get_distance_meters(lat1, lon1, lat2, lon2):
-    ''' nagge '''
     R = 6371000.0
     dlat = math.radians(lat2 - lat1)
     dlon = math.radians(lon2 - lon1)
@@ -35,6 +34,25 @@ def main():
         10,  # Częstotliwość w Hz
         1,   # Włączenie strumienia (1 = ON, 0 = OFF)
     )
+
+    print("=== WYBÓR SCENARIUSZA TESTOWEGO ===")
+    for key, data in SCENARIOS.items():
+        print(f"[{key}] {data['name']}")
+    
+    user_input = input("\nWybierz numer scenariusza (1-4): ")
+    
+    try:
+        scenario_id = int(user_input)
+    except ValueError:
+        print("Nieprawidłowy wybór, wczytuję domyślny scenariusz [1].")
+        scenario_id = 1
+
+    test_data = get_sample(scenario_id)
+    
+    print("\n[Wczytane dane testowe]:")
+    print(f"lat_shift: {test_data['home_lat_shift']}")
+    print(f"lon_shift: {test_data['home_lon_shift']}")
+
 
     # GUIDED
     mode_id = master.mode_mapping().get("GUIDED")
@@ -111,9 +129,9 @@ def main():
         print("Blad: nie odebrano wspolrzednych home_lat")
         return
 
-    # Cel ~100m na polnoc od startu
-    target_lat = home_lat + 0.0009
-    target_lon = home_lon
+    # Cel z wczytanego scenariusza
+    target_lat = home_lat + test_data["home_lat_shift"]
+    target_lon = home_lon + test_data['home_lon_shift']
 
     '''
     type_mask = (
